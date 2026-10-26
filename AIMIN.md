@@ -8,4 +8,5 @@ Branch `aimin/v2.45.6` = upstream tag `twenty/v2.45.6` + one change:
 - `packages/twenty-server/src/engine/core-modules/auth/constants/max-workspaces-without-organization-key.constants.ts`:
   the workspace limit reads `MAX_WORKSPACES_WITHOUT_ENTERPRISE_KEY` from the environment (default 30, upstream 5).
 
-Image: `ghcr.io/aimin-ai/twenty:v2.45.6-aimin.1`, built with `packages/twenty-docker/twenty/Dockerfile`.
+Image: `ghcr.io/aimin-ai/twenty:v2.45.6-aimin.2`, built with
+`docker build --target twenty -f packages/twenty-docker/twenty/Dockerfile .` (the `--target` is required).
