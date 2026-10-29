@@ -1,5 +1,7 @@
+import { isString } from '@sniptt/guards';
 import { jsonSchema } from 'ai';
 import { type JSONSchema7 } from 'json-schema';
+import { isDefined, isPlainObject } from 'twenty-shared/utils';
 import { z } from 'zod';
 
 import { type ToolRegistryService } from 'src/engine/core-modules/tool-provider/services/tool-registry.service';
@@ -7,6 +9,35 @@ import { type ToolContext } from 'src/engine/core-modules/tool-provider/types/to
 import { type ToolOutput } from 'src/engine/core-modules/tool/types/tool-output.type';
 
 export const EXECUTE_TOOL_TOOL_NAME = 'execute_tool';
+
+// The MCP tools/call path invokes execute() without running
+// inputSchema.validate, so `arguments` reaches us as whatever the model sent.
+// Models sometimes send the object serialized as a JSON string; without this,
+// tools read e.g. `args.records` as undefined and crash with an opaque
+// TypeError.
+const normalizeToolArguments = (
+  rawArguments: unknown,
+): Record<string, unknown> | undefined => {
+  if (!isDefined(rawArguments)) {
+    return {};
+  }
+
+  if (isPlainObject(rawArguments)) {
+    return rawArguments;
+  }
+
+  if (isString(rawArguments)) {
+    try {
+      const parsed: unknown = JSON.parse(rawArguments);
+
+      return isPlainObject(parsed) ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  }
+
+  return undefined;
+};
 
 const executeToolInputZodSchema = z.object({
   toolName: z.string().describe('Tool name, as confirmed by learn_tools.'),
@@ -55,13 +86,24 @@ export const createExecuteToolTool = (
     'Execute a tool by name with arguments. Call learn_tools first to discover the required input schema.',
   inputSchema: executeToolInputSchema,
   execute: async (parameters: ExecuteToolInput): Promise<ToolOutput> => {
-    const { toolName, arguments: args = {} } = parameters;
+    const { toolName } = parameters;
 
     if (options?.isToolAllowed?.(toolName) === false) {
       return {
         success: false,
         message: `Tool "${toolName}" is not available`,
         error: `Tool "${toolName}" is not available in this context and cannot be called here. Do not retry it.`,
+      };
+    }
+
+    const args = normalizeToolArguments(parameters.arguments);
+
+    if (args === undefined) {
+      return {
+        success: false,
+        message: 'Invalid tool arguments',
+        error:
+          'arguments must be a JSON object matching the schema returned by learn_tools (not a string, array or other value).',
       };
     }
 
