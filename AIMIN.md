@@ -12,5 +12,5 @@ Branch `aimin/v2.45.6` = upstream tag `twenty/v2.45.6` + two changes:
   `create_many_*` crashes with "Cannot read properties of undefined (reading 'map')" when a model stringifies
   `arguments` (AIM-1052). Drop it once upstream fixes it.
 
-Image: `ghcr.io/aimin-ai/twenty:v2.45.6-aimin.2`, built with
+Image: `ghcr.io/aimin-ai/twenty:v2.45.6-aimin.3`, built with
 `docker build --target twenty -f packages/twenty-docker/twenty/Dockerfile .` (the `--target` is required).
